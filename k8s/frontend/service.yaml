@@ -1,0 +1,16 @@
+# Único punto de entrada público (E5): GKE crea un balanceador con IP externa.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: maximos
+  labels:
+    app: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
