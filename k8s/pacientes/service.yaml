@@ -1,0 +1,16 @@
+# Interno al clúster. El nombre "pacientes" es el DNS que usa el nginx del frontend (E6).
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacientes
+  namespace: maximos
+  labels:
+    app: pacientes
+spec:
+  type: ClusterIP
+  selector:
+    app: pacientes
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
