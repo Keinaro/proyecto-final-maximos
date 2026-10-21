@@ -1,0 +1,52 @@
+# Microservicio B: citas (E1, C3).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: citas
+  namespace: maximos
+  labels:
+    app: citas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: citas
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: citas
+    spec:
+      containers:
+        - name: citas
+          image: REGION-docker.pkg.dev/PROJECT_ID/vet-repo/citas:v1.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: db-secret
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
