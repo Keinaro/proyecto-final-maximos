@@ -1,0 +1,35 @@
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Secret real de Kubernetes
+k8s/config/secret.yaml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.auto.tfvars
+crash.log
+
+# Credenciales de Google Cloud
+*credentials*.json
+*service-account*.json
+*.json.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node.js
+node_modules/
+
+# Archivos temporales
+*.log
+.DS_Store
+Thumbs.db
