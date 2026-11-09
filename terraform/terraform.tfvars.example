@@ -1,0 +1,14 @@
+
+# Configuracion de ejemplo para Terraform
+
+
+project_id = "ID_DEL_PROYECTO"
+
+region = "us-central1"
+zone   = "us-central1-a"
+
+team_id      = "maximos"
+cluster_name = "gke-maximos"
+
+repo_name  = "vet-repo"
+node_count = 2
