@@ -551,6 +551,11 @@ code {
   font-size: 0.88rem;
 }
 
+.error-cell {
+  color: var(--danger) !important;
+  background: var(--danger-soft);
+}
+
 .id-badge {
   font-family: "JetBrains Mono", monospace;
   font-size: 0.74rem;

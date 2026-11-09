@@ -7,129 +7,34 @@
  *   /api/pacientes   -> http://pacientes:8080/pacientes
  *   /api/citas       -> http://citas:8080/citas
  *   /api/integrantes -> http://pacientes:8080/integrantes
+ *
+ * Todos los datos vienen de la API (y por lo tanto de PostgreSQL). Si un
+ * microservicio no responde, la interfaz muestra el error en pantalla en lugar
+ * de inventar datos, para que la falla sea visible y diagnosticable.
  */
 
 const API_ROUTES = {
   pacientes: "/api/pacientes",
   citas: "/api/citas",
   integrantes: "/api/integrantes",
-  healthPacientes: "/api/health/pacientes",
-  healthCitas: "/api/health/citas",
 };
 
-const STORAGE_KEYS = {
-  forceMock: "vet_maximos_force_mock",
-  mockData: "vet_maximos_mock_db_v1",
-};
-
-// Datos semilla de respaldo que respetan el Contrato 3.3 y 3.4 mientras P1/P2 levantan sus servicios
-const INITIAL_MOCK_DB = {
-  integrantes: [
-    { id: 1, nombre: "Integrante 1 (P1 · Pacientes)", carne: "1000122" },
-    { id: 2, nombre: "Integrante 2 (P2 · Citas)", carne: "1000222" },
-    { id: 3, nombre: "Sofía (P3 · Frontend)", carne: "1000322" },
-    { id: 4, nombre: "Integrante 4 (P4 · BD y Config)", carne: "1000422" },
-    { id: 5, nombre: "Integrante 5 (P5 · Terraform)", carne: "1000522" },
-    { id: 6, nombre: "Integrante 6 (P6 · Kubernetes)", carne: "1000622" },
-  ],
-  pacientes: [
-    {
-      id: 1,
-      nombre: "Max",
-      especie: "Perro",
-      raza: "Golden Retriever",
-      fecha_nacimiento: "2022-04-15",
-      propietario_nombre: "Carlos Méndez",
-      propietario_telefono: "5512-3489",
-    },
-    {
-      id: 2,
-      nombre: "Luna",
-      especie: "Gato",
-      raza: "Siamés",
-      fecha_nacimiento: "2023-08-10",
-      propietario_nombre: "María Fernanda Gómez",
-      propietario_telefono: "4489-9012",
-    },
-    {
-      id: 3,
-      nombre: "Rocky",
-      especie: "Perro",
-      raza: "Bulldog Francés",
-      fecha_nacimiento: "2021-11-02",
-      propietario_nombre: "Jorge Castillo",
-      propietario_telefono: "3301-7745",
-    },
-  ],
-  citas: [
-    {
-      id: 1,
-      paciente_id: 1,
-      fecha_hora: "2026-11-10T09:30:00",
-      motivo: "Vacunación anual polivalente y chequeo general",
-      veterinario: "Dra. Sofía Morales",
-      estado: "programada",
-    },
-    {
-      id: 2,
-      paciente_id: 2,
-      fecha_hora: "2026-11-10T11:00:00",
-      motivo: "Control dermatológico y limpieza dental",
-      veterinario: "Dr. Alejandro Reyes",
-      estado: "programada",
-    },
-    {
-      id: 3,
-      paciente_id: 1,
-      fecha_hora: "2026-11-01T15:00:00",
-      motivo: "Desparasitación interna trimestral",
-      veterinario: "Dra. Sofía Morales",
-      estado: "completada",
-    },
-  ],
-  nextPacienteId: 4,
-  nextCitaId: 4,
-};
+// Limpia restos del antiguo modo de simulación guardados en el navegador
+try {
+  localStorage.removeItem("vet_maximos_force_mock");
+  localStorage.removeItem("vet_maximos_mock_db_v1");
+} catch (_) {
+  // ignore storage errors
+}
 
 const state = {
   pacientes: [],
   citas: [],
   integrantes: [],
-  usingMock: false,
-  forceMock: localStorage.getItem(STORAGE_KEYS.forceMock) === "true",
   searchPacientes: "",
   filterPacienteId: "",
   filterEstado: "",
 };
-
-/* ==========================================================================
-   Motor de Simulación Local (Contrato 3.4: 200, 201, 204, 400, 404, 409)
-   ========================================================================== */
-function loadMockDb() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.mockData);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {
-    // ignore storage errors
-  }
-  const clone = JSON.parse(JSON.stringify(INITIAL_MOCK_DB));
-  saveMockDb(clone);
-  return clone;
-}
-
-function saveMockDb(db) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.mockData, JSON.stringify(db));
-  } catch (_) {
-    // ignore storage errors
-  }
-}
-
-function resetMockDb() {
-  const clone = JSON.parse(JSON.stringify(INITIAL_MOCK_DB));
-  saveMockDb(clone);
-  return clone;
-}
 
 function createHttpError(status, message) {
   const err = new Error(message);
@@ -137,178 +42,10 @@ function createHttpError(status, message) {
   return err;
 }
 
-async function mockApiRequest(method, url, body = null) {
-  const db = loadMockDb();
-  const parsedUrl = new URL(url, window.location.origin);
-  const path = parsedUrl.pathname;
-
-  // Health endpoints
-  if (path === API_ROUTES.healthPacientes || path === API_ROUTES.healthCitas) {
-    return { status: "ok", version: "1.0.0-sim" };
-  }
-
-  // GET /api/integrantes
-  if (path === API_ROUTES.integrantes && method === "GET") {
-    return db.integrantes;
-  }
-
-  // /api/pacientes
-  if (path === API_ROUTES.pacientes) {
-    if (method === "GET") {
-      return db.pacientes;
-    }
-    if (method === "POST") {
-      if (!body || !body.nombre || !body.especie || !body.propietario_nombre) {
-        throw createHttpError(400, "Los campos nombre, especie y propietario_nombre son obligatorios");
-      }
-      const nuevo = {
-        id: db.nextPacienteId++,
-        nombre: String(body.nombre).trim(),
-        especie: String(body.especie).trim(),
-        raza: body.raza ? String(body.raza).trim() : null,
-        fecha_nacimiento: body.fecha_nacimiento || null,
-        propietario_nombre: String(body.propietario_nombre).trim(),
-        propietario_telefono: body.propietario_telefono ? String(body.propietario_telefono).trim() : null,
-      };
-      db.pacientes.push(nuevo);
-      saveMockDb(db);
-      return nuevo;
-    }
-  }
-
-  // /api/pacientes/{id}
-  const matchPaciente = path.match(/^\/api\/pacientes\/(\d+)$/);
-  if (matchPaciente) {
-    const id = Number(matchPaciente[1]);
-    const idx = db.pacientes.findIndex((p) => Number(p.id) === id);
-    if (idx === -1) {
-      throw createHttpError(404, `Paciente con id ${id} no encontrado`);
-    }
-
-    if (method === "GET") {
-      return db.pacientes[idx];
-    }
-    if (method === "PUT") {
-      if (!body || !body.nombre || !body.especie || !body.propietario_nombre) {
-        throw createHttpError(400, "Los campos nombre, especie y propietario_nombre son obligatorios");
-      }
-      db.pacientes[idx] = {
-        ...db.pacientes[idx],
-        nombre: String(body.nombre).trim(),
-        especie: String(body.especie).trim(),
-        raza: body.raza ? String(body.raza).trim() : null,
-        fecha_nacimiento: body.fecha_nacimiento || null,
-        propietario_nombre: String(body.propietario_nombre).trim(),
-        propietario_telefono: body.propietario_telefono ? String(body.propietario_telefono).trim() : null,
-      };
-      saveMockDb(db);
-      return db.pacientes[idx];
-    }
-    if (method === "DELETE") {
-      const tieneCitas = db.citas.some((c) => Number(c.paciente_id) === id);
-      if (tieneCitas) {
-        throw createHttpError(
-          409,
-          "No se puede eliminar el paciente porque tiene citas registradas (ON DELETE RESTRICT)"
-        );
-      }
-      db.pacientes.splice(idx, 1);
-      saveMockDb(db);
-      return null;
-    }
-  }
-
-  // /api/citas
-  if (path === API_ROUTES.citas) {
-    if (method === "GET") {
-      const pacienteIdParam = parsedUrl.searchParams.get("paciente_id");
-      if (pacienteIdParam) {
-        return db.citas.filter((c) => Number(c.paciente_id) === Number(pacienteIdParam));
-      }
-      return db.citas;
-    }
-    if (method === "POST") {
-      const pacienteId = Number(body?.paciente_id);
-      const existePaciente = db.pacientes.some((p) => Number(p.id) === pacienteId);
-      if (!existePaciente) {
-        throw createHttpError(400, "paciente no existe");
-      }
-      const estadosValidos = ["programada", "completada", "cancelada"];
-      const estado = body?.estado || "programada";
-      if (!estadosValidos.includes(estado)) {
-        throw createHttpError(400, "Estado inválido. Valores permitidos: programada, completada, cancelada");
-      }
-      if (!body?.fecha_hora || !body?.motivo) {
-        throw createHttpError(400, "Los campos paciente_id, fecha_hora y motivo son obligatorios");
-      }
-      const nueva = {
-        id: db.nextCitaId++,
-        paciente_id: pacienteId,
-        fecha_hora: body.fecha_hora,
-        motivo: String(body.motivo).trim(),
-        veterinario: body.veterinario ? String(body.veterinario).trim() : null,
-        estado,
-      };
-      db.citas.push(nueva);
-      saveMockDb(db);
-      return nueva;
-    }
-  }
-
-  // /api/citas/{id}
-  const matchCita = path.match(/^\/api\/citas\/(\d+)$/);
-  if (matchCita) {
-    const id = Number(matchCita[1]);
-    const idx = db.citas.findIndex((c) => Number(c.id) === id);
-    if (idx === -1) {
-      throw createHttpError(404, `Cita con id ${id} no encontrada`);
-    }
-
-    if (method === "GET") {
-      return db.citas[idx];
-    }
-    if (method === "PUT") {
-      const pacienteId = Number(body?.paciente_id);
-      const existePaciente = db.pacientes.some((p) => Number(p.id) === pacienteId);
-      if (!existePaciente) {
-        throw createHttpError(400, "paciente no existe");
-      }
-      const estadosValidos = ["programada", "completada", "cancelada"];
-      const estado = body?.estado || "programada";
-      if (!estadosValidos.includes(estado)) {
-        throw createHttpError(400, "Estado inválido. Valores permitidos: programada, completada, cancelada");
-      }
-      db.citas[idx] = {
-        ...db.citas[idx],
-        paciente_id: pacienteId,
-        fecha_hora: body.fecha_hora,
-        motivo: String(body.motivo).trim(),
-        veterinario: body.veterinario ? String(body.veterinario).trim() : null,
-        estado,
-      };
-      saveMockDb(db);
-      return db.citas[idx];
-    }
-    if (method === "DELETE") {
-      db.citas.splice(idx, 1);
-      saveMockDb(db);
-      return null;
-    }
-  }
-
-  throw createHttpError(404, `Ruta no encontrada: ${path}`);
-}
-
 /* ==========================================================================
-   Cliente HTTP con detección de Backend en Vivo vs Fallback Local
+   Cliente HTTP (siempre contra la API real vía Nginx)
    ========================================================================== */
 async function apiFetch(method, url, body = null) {
-  if (state.forceMock) {
-    state.usingMock = true;
-    updateConnectionBadge();
-    return mockApiRequest(method, url, body);
-  }
-
   const options = {
     method,
     headers: {
@@ -325,45 +62,14 @@ async function apiFetch(method, url, body = null) {
   try {
     response = await fetch(url, options);
   } catch (networkErr) {
-    // Si no hay servidor o Nginx aún no está levantado localmente, usar simulación en lectura inicial
-    if (method === "GET") {
-      state.usingMock = true;
-      updateConnectionBadge();
-      return mockApiRequest(method, url, body);
-    }
-    throw createHttpError(503, `No se pudo conectar con ${url} (${networkErr.message})`);
+    throw createHttpError(0, `No se pudo conectar con ${url}. ¿Está corriendo Nginx? (${networkErr.message})`);
   }
-
-  // Si estamos abriendo el archivo estático sin el proxy de nginx (404 HTML o 502 Bad Gateway)
-  const contentType = response.headers.get("content-type") || "";
-  if (
-    method === "GET" &&
-    (response.status === 502 ||
-      response.status === 503 ||
-      response.status === 504 ||
-      (response.status === 404 && !contentType.includes("application/json")))
-  ) {
-    state.usingMock = true;
-    updateConnectionBadge();
-    return mockApiRequest(method, url, body);
-  }
-
-  // Si ya estábamos en modo mock por falta de backend y hacen POST/PUT/DELETE en pruebas locales
-  if (
-    state.usingMock &&
-    (response.status === 404 || response.status === 405 || response.status === 502) &&
-    !contentType.includes("application/json")
-  ) {
-    return mockApiRequest(method, url, body);
-  }
-
-  state.usingMock = false;
-  updateConnectionBadge();
 
   if (response.status === 204) {
     return null;
   }
 
+  const contentType = response.headers.get("content-type") || "";
   let payload = null;
   if (contentType.includes("application/json")) {
     try {
@@ -376,74 +82,103 @@ async function apiFetch(method, url, body = null) {
     try {
       payload = JSON.parse(text);
     } catch (_) {
-      payload = { error: text || response.statusText };
+      payload = null;
     }
   }
 
   if (!response.ok) {
-    const errMsg =
-      payload?.error ||
-      payload?.message ||
-      payload?.detail ||
-      `Error HTTP ${response.status} (${response.statusText})`;
+    let errMsg = payload?.error || payload?.message || payload?.detail;
+    if (!errMsg) {
+      if (response.status === 502 || response.status === 503 || response.status === 504) {
+        errMsg = `El microservicio detrás de ${url} no responde (HTTP ${response.status}). Revisa que el pod/contenedor esté corriendo.`;
+      } else {
+        errMsg = `Error HTTP ${response.status} (${response.statusText}) en ${url}`;
+      }
+    }
     throw createHttpError(response.status, errMsg);
+  }
+
+  // Una respuesta 200 que no es JSON indica que la ruta no llegó al microservicio
+  if (payload === null && method === "GET") {
+    throw createHttpError(
+      response.status,
+      `La respuesta de ${url} no es JSON. Revisa la configuración de nginx.conf.`
+    );
   }
 
   return payload;
 }
 
 /* ==========================================================================
-   Carga de Datos y Salud de Microservicios
+   Carga de Datos
    ========================================================================== */
+function renderTableError(tbodyId, message) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="empty-cell error-cell">
+        ${escapeHtml(message)}
+      </td>
+    </tr>
+  `;
+}
+
 async function loadAllData(showSuccessToast = false) {
-  try {
-    const citasUrl = state.filterPacienteId
-      ? `${API_ROUTES.citas}?paciente_id=${encodeURIComponent(state.filterPacienteId)}`
-      : API_ROUTES.citas;
+  const citasUrl = state.filterPacienteId
+    ? `${API_ROUTES.citas}?paciente_id=${encodeURIComponent(state.filterPacienteId)}`
+    : API_ROUTES.citas;
 
-    const [pacientes, citas, integrantes] = await Promise.all([
-      apiFetch("GET", API_ROUTES.pacientes),
-      apiFetch("GET", citasUrl),
-      apiFetch("GET", API_ROUTES.integrantes).catch(() => []),
-    ]);
+  // allSettled: si un microservicio cae, el otro se sigue mostrando
+  const [resPacientes, resCitas, resIntegrantes] = await Promise.allSettled([
+    apiFetch("GET", API_ROUTES.pacientes),
+    apiFetch("GET", citasUrl),
+    apiFetch("GET", API_ROUTES.integrantes),
+  ]);
 
-    state.pacientes = Array.isArray(pacientes) ? pacientes : [];
-    state.citas = Array.isArray(citas) ? citas : [];
-    state.integrantes = Array.isArray(integrantes) ? integrantes : [];
+  const errores = [];
 
-    renderIntegrantes();
-    populatePacienteSelects();
-    renderPacientes();
-    renderCitas();
-    updateKpis();
-    checkServicesHealth();
-
-    if (showSuccessToast) {
-      showAlert("info", "Datos actualizados", "Se consultaron correctamente /api/pacientes, /api/citas y /api/integrantes.");
-    }
-  } catch (err) {
-    showAlert("error", `Error al cargar datos (${err.status || "Red"})`, err.message);
-  }
-}
-
-async function checkServicesHealth() {
-  const elPacientes = document.getElementById("ver-pacientes");
-  const elCitas = document.getElementById("ver-citas");
-  if (!elPacientes || !elCitas) return;
-}
-
-function updateConnectionBadge() {
-  const badge = document.getElementById("api-mode-badge");
-  const text = document.getElementById("api-mode-text");
-  if (!badge || !text) return;
-
-  badge.classList.remove("badge-checking", "badge-live", "badge-mock");
-  if (state.usingMock) {
-    badge.classList.add("badge-mock");
-    text.textContent = "Modo Simulación (Contrato 3.4)";
+  if (resPacientes.status === "fulfilled") {
+    state.pacientes = Array.isArray(resPacientes.value) ? resPacientes.value : [];
   } else {
-    badge.classList.add("badge-live");
-    text.textContent = "API en vivo (/api/*)";
+    state.pacientes = [];
+    errores.push(`Pacientes: ${resPacientes.reason.message}`);
+  }
+
+  if (resCitas.status === "fulfilled") {
+    state.citas = Array.isArray(resCitas.value) ? resCitas.value : [];
+  } else {
+    state.citas = [];
+    errores.push(`Citas: ${resCitas.reason.message}`);
+  }
+
+  if (resIntegrantes.status === "fulfilled") {
+    state.integrantes = Array.isArray(resIntegrantes.value) ? resIntegrantes.value : [];
+  } else {
+    state.integrantes = [];
+    errores.push(`Integrantes: ${resIntegrantes.reason.message}`);
+  }
+
+  renderIntegrantes(resIntegrantes.status === "rejected");
+  populatePacienteSelects();
+
+  if (resPacientes.status === "fulfilled") {
+    renderPacientes();
+  } else {
+    renderTableError("tbody-pacientes", `No se pudieron cargar los pacientes. ${resPacientes.reason.message}`);
+  }
+
+  if (resCitas.status === "fulfilled") {
+    renderCitas();
+  } else {
+    renderTableError("tbody-citas", `No se pudieron cargar las citas. ${resCitas.reason.message}`);
+  }
+
+  updateKpis();
+
+  if (errores.length) {
+    showAlert("error", "Error al consultar la API", errores.join(" | "));
+  } else if (showSuccessToast) {
+    showAlert("info", "Datos actualizados", "Se consultaron correctamente /api/pacientes, /api/citas y /api/integrantes.");
   }
 }
 
@@ -491,11 +226,16 @@ function toDatetimeLocalValue(isoDateTime) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function renderIntegrantes() {
+function renderIntegrantes(failed = false) {
   const footerCarnes = document.getElementById("footer-integrantes");
 
+  if (failed) {
+    footerCarnes.textContent = "Equipo: no se pudo consultar /api/integrantes";
+    return;
+  }
+
   if (!state.integrantes.length) {
-    footerCarnes.textContent = "Equipo: pendiente de carga en BD";
+    footerCarnes.textContent = "Equipo: la tabla integrantes está vacía";
     return;
   }
 
