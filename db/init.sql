@@ -33,6 +33,15 @@ CREATE TABLE IF NOT EXISTS citas (
     estado VARCHAR(20) NOT NULL DEFAULT 'programada'
 );
 
--- Los integrantes reales se insertaran aqui.
--- Se utilizara ON CONFLICT (carne) DO NOTHING
--- para evitar registros duplicados.
+
+-- 4. Integrantes del equipo
+INSERT INTO integrantes (nombre, carne)
+VALUES
+    ('Giancarlo Ortega Bonilla', '1230222'),
+    ('Jose Daniel Paz Ortega', '1200022'),
+    ('Ana Sofia Asturias To', '1078123'),
+    ('Julio Javier Robles Garcia', '1248823'),
+    ('Ana Lucia Chavez Penagos', '1067423'),
+    ('Jorge Francisco Munoz Portela', '1177523')
+ON CONFLICT (carne)
+DO UPDATE SET nombre = EXCLUDED.nombre;
