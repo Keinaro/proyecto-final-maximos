@@ -1,0 +1,69 @@
+flowchart TB
+    %% Actores externos
+    User["🌐 Usuario / Navegador Externo<br/>(Fuera del clúster)"]
+    IaC["🛠️ Infraestructura como Código<br/>Terraform (archivos .tf)"]
+
+    subgraph GCP["☁️ Google Cloud Platform (Proyecto GCP)"]
+        direction TB
+
+        AR["📦 Artifact Registry (vet-repo)<br/>REGION-docker.pkg.dev/PROJECT_ID/vet-repo<br/>• frontend:v1.0.0<br/>• pacientes:v1.0.0 / v1.1.0<br/>• citas:v1.0.0<br/>• db:16 (postgres:16)"]
+
+        subgraph GKE["☸️ Clúster GKE Standard Zonal: gke-maximos (Node Pool: spot-pool · 2x e2-small Spot)"]
+            direction TB
+
+            subgraph NS["Namespace: maximos"]
+                direction TB
+
+                LB["🔌 Service: frontend<br/>Tipo: LoadBalancer<br/>IP Pública Externa :80"]
+                FE["🖥️ Deployment: frontend<br/>Contenedor: nginx:1.27-alpine (:80)<br/>Sirve UI estática + Proxy Inverso"]
+
+                subgraph Microservices["Capa de Microservicios (ClusterIP · DNS Interno)"]
+                    direction LR
+                    SVCA["🔹 Service: pacientes<br/>Tipo: ClusterIP (pacientes:8080)"]
+                    DEPA["🐾 Deployment: pacientes<br/>Microservicio A (:8080)<br/>CRUD /pacientes · /integrantes · /health"]
+
+                    SVCB["🔹 Service: citas<br/>Tipo: ClusterIP (citas:8080)"]
+                    DEPB["📅 Deployment: citas<br/>Microservicio B (:8080)<br/>CRUD /citas · FK paciente_id · /health"]
+                end
+
+                subgraph Config["Configuración y Credenciales"]
+                    direction LR
+                    CM["⚙️ ConfigMap: app-config<br/>PORT=8080, DB_HOST=db,<br/>DB_PORT=5432, DB_NAME=vetdb"]
+                    SEC["🔐 Secret: db-secret<br/>DB_USER, DB_PASSWORD"]
+                end
+
+                subgraph DataLayer["Capa de Persistencia (PostgreSQL 16)"]
+                    direction LR
+                    SVCDB["🔹 Service: db<br/>Tipo: ClusterIP (db:5432)"]
+                    DEPDB["🗄️ Deployment: db (postgres:16)<br/>Tablas: pacientes, citas, integrantes<br/>mountPath: /var/lib/postgresql/data"]
+                    PVC["💾 PersistentVolumeClaim: db-pvc<br/>ReadWriteOnce · 1Gi<br/>(Disco Persistente GCE)"]
+                end
+            end
+        end
+    end
+
+    %% Flujo de tráfico y relaciones
+    User -->|"HTTP GET / y /api/*<br/>(IP Pública :80)"| LB
+    LB -->|"targetPort: 80"| FE
+
+    FE -->|"proxy_pass /api/pacientes & /api/integrantes<br/>DNS: http://pacientes:8080"| SVCA
+    FE -->|"proxy_pass /api/citas<br/>DNS: http://citas:8080"| SVCB
+
+    SVCA --> DEPA
+    SVCB --> DEPB
+
+    DEPA -->|"SQL TCP<br/>DNS: db:5432"| SVCDB
+    DEPB -->|"SQL TCP<br/>DNS: db:5432"| SVCDB
+    SVCDB --> DEPDB
+    DEPDB <-->|"Volumen persistente<br/>PGDATA"| PVC
+
+    CM -.->|"envFrom"| DEPA
+    CM -.->|"envFrom"| DEPB
+    CM -.->|"POSTGRES_DB"| DEPDB
+    SEC -.->|"envFrom"| DEPA
+    SEC -.->|"envFrom"| DEPB
+    SEC -.->|"POSTGRES_USER/PASSWORD"| DEPDB
+
+    AR -.->|"Pull imágenes (roles/artifactregistry.reader)"| GKE
+    IaC -.->|"terraform apply<br/>(Clúster, Spot Pool, AR)"| GCP
+
