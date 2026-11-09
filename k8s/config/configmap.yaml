@@ -1,0 +1,13 @@
+# Configuración no secreta compartida por pacientes, citas y db (E3).
+# Usuario y contraseña van en el Secret db-secret, que no se sube al repositorio.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: maximos
+  labels:
+    app.kubernetes.io/part-of: vet-maximos
+data:
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_NAME: vetdb

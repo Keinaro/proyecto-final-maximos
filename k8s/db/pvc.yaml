@@ -1,0 +1,15 @@
+# Disco persistente de PostgreSQL (E4): los datos sobreviven si el Pod se recrea.
+# Sin storageClassName usa la clase por defecto de GKE (standard-rwo, disco zonal).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-data
+  namespace: maximos
+  labels:
+    app: db
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

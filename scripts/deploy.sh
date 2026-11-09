@@ -33,6 +33,14 @@ if ! kubectl get secret db-secret -n "$NS" >/dev/null 2>&1; then
   fi
 fi
 
+# db/init.sql es la única fuente del esquema: se monta en /docker-entrypoint-initdb.d.
+if [ ! -s db/init.sql ]; then
+  echo "db/init.sql está vacío: la base arrancaría sin tablas" >&2
+  exit 1
+fi
+kubectl create configmap db-init -n "$NS" --from-file=init.sql=db/init.sql \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 kubectl apply -f k8s/db/
 kubectl rollout status deploy/db -n "$NS" --timeout=180s
 

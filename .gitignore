@@ -1,0 +1,3 @@
+# Credenciales: el Secret se crea con kubectl create secret o en este archivo local.
+k8s/config/secret.yaml
+.env
