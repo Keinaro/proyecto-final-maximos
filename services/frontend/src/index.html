@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clínica Veterinaria Máximos · Gestión de Pacientes y Citas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Barra superior principal -->
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="4" r="2"/>
+            <circle cx="18" cy="8" r="2"/>
+            <circle cx="20" cy="16" r="2"/>
+            <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Clínica Veterinaria <span class="brand-accent">Máximos</span></h1>
+          <p class="subtitle">Sistema de Gestión Clínica · Pacientes y Citas Médicas · Namespace <code>maximos</code></p>
+        </div>
+      </div>
+
+      <div class="status-cluster">
+        <button id="btn-refresh" class="btn btn-outline btn-sm" type="button" title="Volver a consultar /api/pacientes, /api/citas y /api/integrantes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 16h5v5"/>
+          </svg>
+          <span>Recargar datos</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor de alertas y errores legibles -->
+  <div class="container">
+    <div id="alert-box" class="alert hidden" role="alert">
+      <div class="alert-content">
+        <span class="alert-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <strong id="alert-title">Aviso</strong>
+        <span id="alert-message"></span>
+      </div>
+      <button id="alert-close" class="alert-close" type="button" aria-label="Cerrar alerta">&times;</button>
+    </div>
+  </div>
+
+  <!-- Controles de vista y resumen Bento -->
+  <main class="container main-content">
+    <div class="toolbar">
+      <div class="view-tabs" role="tablist" aria-label="Modo de visualización">
+        <button class="tab-btn active" data-view="split" role="tab" aria-selected="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="18" x="3" y="3" rx="1"/>
+            <rect width="7" height="18" x="14" y="3" rx="1"/>
+          </svg>
+          <span>Vista Simultánea</span>
+        </button>
+        <button class="tab-btn" data-view="pacientes" role="tab" aria-selected="false">
+          <span>Pacientes</span>
+          <span class="tab-counter" id="tab-count-pacientes">0</span>
+        </button>
+        <button class="tab-btn" data-view="citas" role="tab" aria-selected="false">
+          <span>Citas</span>
+          <span class="tab-counter" id="tab-count-citas">0</span>
+        </button>
+      </div>
+
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-coffee">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/>
+              <path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"/>
+              <path d="M8 14v.5"/>
+              <path d="M16 14v.5"/>
+              <path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/>
+              <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309m-9.243-6.082A8.801 8.801 0 0 1 12 5c.78 0 1.5.108 2.161.306"/>
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Pacientes Activos</span>
+            <strong id="kpi-pacientes">0</strong>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Citas Programadas</span>
+            <strong id="kpi-programadas">0</strong>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-neutral">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+              <line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/>
+              <line x1="3" x2="21" y1="10" y2="10"/>
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Citas</span>
+            <strong id="kpi-citas">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid principal con ambos microservicios en pantalla (B4) -->
+    <div id="workspace-grid" class="workspace-grid view-split">
+      <!-- COLUMNA 1: MICROSERVICIO A - PACIENTES -->
+      <section id="panel-pacientes" class="panel" aria-labelledby="heading-pacientes">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="service-tag service-a">
+              <span class="tag-dot"></span>
+              Microservicio A · <code>/api/pacientes</code>
+            </span>
+            <h2 id="heading-pacientes">Expedientes de Pacientes</h2>
+          </div>
+          <button id="btn-new-paciente" class="btn btn-primary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Nuevo Paciente</span>
+          </button>
+        </div>
+
+        <div class="panel-filters">
+          <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="search"
+              id="search-pacientes"
+              class="input input-sm input-with-icon"
+              placeholder="Buscar mascota, especie, raza o propietario..."
+              aria-label="Buscar pacientes"
+            />
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="table-pacientes">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Mascota</th>
+                <th>Especie / Raza</th>
+                <th>Nacimiento</th>
+                <th>Propietario</th>
+                <th>Citas</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-pacientes">
+              <tr>
+                <td colspan="7" class="empty-cell">Cargando pacientes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- COLUMNA 2: MICROSERVICIO B - CITAS -->
+      <section id="panel-citas" class="panel" aria-labelledby="heading-citas">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="service-tag service-b">
+              <span class="tag-dot"></span>
+              Microservicio B · <code>/api/citas</code>
+            </span>
+            <h2 id="heading-citas">Agenda de Citas Médicas</h2>
+          </div>
+          <button id="btn-new-cita" class="btn btn-secondary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Nueva Cita</span>
+          </button>
+        </div>
+
+        <div class="panel-filters filters-row">
+          <div class="filter-group">
+            <label for="filter-paciente">Paciente</label>
+            <select id="filter-paciente" class="input input-sm">
+              <option value="">Todos los pacientes</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-estado">Estado</label>
+            <select id="filter-estado" class="input input-sm">
+              <option value="">Todos</option>
+              <option value="programada">Programada</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <button id="btn-clear-filters" class="btn btn-ghost btn-sm hidden" type="button">
+            Limpiar filtro
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="table-citas">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Paciente</th>
+                <th>Fecha y Hora</th>
+                <th>Motivo de Consulta</th>
+                <th>Veterinario</th>
+                <th>Estado</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-citas">
+              <tr>
+                <td colspan="7" class="empty-cell">Cargando citas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- MODAL: CREAR / EDITAR PACIENTE -->
+  <div id="modal-paciente" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-paciente-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Microservicio A · Pacientes</span>
+          <h3 id="modal-paciente-title">Nuevo Paciente</h3>
+        </div>
+        <button class="modal-close" data-close="modal-paciente" type="button" aria-label="Cerrar">&times;</button>
+      </div>
+      <form id="form-paciente" class="modal-form">
+        <input type="hidden" id="paciente-id" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="paciente-nombre">Nombre de la mascota <span class="req">*</span></label>
+            <input type="text" id="paciente-nombre" class="input" required maxlength="100" placeholder="Ej. Max" />
+          </div>
+          <div class="form-group">
+            <label for="paciente-especie">Especie <span class="req">*</span></label>
+            <input type="text" id="paciente-especie" class="input" list="especies-list" required maxlength="50" placeholder="Ej. Perro, Gato..." />
+            <datalist id="especies-list">
+              <option value="Perro"></option>
+              <option value="Gato"></option>
+              <option value="Conejo"></option>
+              <option value="Ave"></option>
+              <option value="Hámster"></option>
+              <option value="Reptil"></option>
+            </datalist>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="paciente-raza">Raza</label>
+            <input type="text" id="paciente-raza" class="input" maxlength="80" placeholder="Ej. Golden Retriever" />
+          </div>
+          <div class="form-group">
+            <label for="paciente-nacimiento">Fecha de nacimiento</label>
+            <input type="date" id="paciente-nacimiento" class="input" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="paciente-propietario">Nombre del propietario <span class="req">*</span></label>
+            <input type="text" id="paciente-propietario" class="input" required maxlength="120" placeholder="Ej. Ana López" />
+          </div>
+          <div class="form-group">
+            <label for="paciente-telefono">Teléfono de contacto</label>
+            <input type="tel" id="paciente-telefono" class="input" maxlength="20" placeholder="Ej. 5555-1234" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="modal-paciente">Cancelar</button>
+          <button type="submit" id="btn-submit-paciente" class="btn btn-primary">Guardar Paciente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR CITA -->
+  <div id="modal-cita" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-cita-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Microservicio B · Citas</span>
+          <h3 id="modal-cita-title">Nueva Cita Médica</h3>
+        </div>
+        <button class="modal-close" data-close="modal-cita" type="button" aria-label="Cerrar">&times;</button>
+      </div>
+      <form id="form-cita" class="modal-form">
+        <input type="hidden" id="cita-id" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cita-paciente-id">Paciente <span class="req">*</span></label>
+            <select id="cita-paciente-id" class="input" required>
+              <option value="">Seleccione un paciente...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cita-fecha-hora">Fecha y hora <span class="req">*</span></label>
+            <input type="datetime-local" id="cita-fecha-hora" class="input" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cita-motivo">Motivo de la consulta <span class="req">*</span></label>
+          <input type="text" id="cita-motivo" class="input" required maxlength="200" placeholder="Ej. Vacunación anual antirrábica y control general" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cita-veterinario">Veterinario asignado</label>
+            <input type="text" id="cita-veterinario" class="input" maxlength="100" placeholder="Ej. Dra. Sofía Morales" />
+          </div>
+          <div class="form-group">
+            <label for="cita-estado">Estado de la cita <span class="req">*</span></label>
+            <select id="cita-estado" class="input" required>
+              <option value="programada">Programada</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="modal-cita">Cancelar</button>
+          <button type="submit" id="btn-submit-cita" class="btn btn-secondary">Guardar Cita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pie de página con versión y carnés (A4 + F3) -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <strong>Clínica Veterinaria Máximos</strong>
+        <span class="footer-sep">·</span>
+        <span>Proyecto Final Virtualización (GKE + Terraform)</span>
+        <span class="footer-sep">·</span>
+        <code id="frontend-version">v1.0.0</code>
+      </div>
+      <div id="footer-integrantes" class="footer-carnes">
+        <!-- Resumen de carnés -->
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
