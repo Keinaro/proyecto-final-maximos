@@ -409,14 +409,6 @@ def anexo(est, por_persona):
     return historia
 
 
-def numero_de_pagina(lienzo, doc):
-    lienzo.saveState()
-    lienzo.setFont("Helvetica", 9)
-    lienzo.setFillColor(colors.grey)
-    lienzo.drawRightString(A4[0] - 2 * cm, 1.1 * cm, f"Maximos · {doc.page}")
-    lienzo.restoreState()
-
-
 def construir(args):
     est = estilos()
     capturas = buscar_capturas(Path(args.evidencias))
@@ -438,7 +430,7 @@ def construir(args):
                             topMargin=2 * cm, bottomMargin=2 * cm,
                             title="Proyecto final - Clínica veterinaria en Kubernetes - Maximos",
                             author="Equipo Maximos")
-    doc.build(historia, onLaterPages=numero_de_pagina)
+    doc.build(historia)
 
     total = sum(len(c) for c in capturas.values())
     print(f"PDF generado: {salida} ({total} capturas)")
