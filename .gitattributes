@@ -1,2 +1,6 @@
 # Los scripts se ejecutan en bash: con CRLF fallan ("$'\r': command not found").
 *.sh text eol=lf
+
+# Las evidencias son binarias: sin esto git cambia los saltos de línea del PDF en Windows y lo daña.
+*.pdf binary
+*.png binary
