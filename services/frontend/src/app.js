@@ -308,23 +308,23 @@ function renderPacientes() {
       const initial = p.nombre ? String(p.nombre).trim().charAt(0).toUpperCase() : "P";
       return `
         <tr>
-          <td><span class="id-badge">#${escapeHtml(p.id)}</span></td>
-          <td>
+          <td data-label="ID"><span class="id-badge">#${escapeHtml(p.id)}</span></td>
+          <td data-label="Mascota">
             <div class="pet-cell">
               <span class="pet-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
               <span class="entity-primary">${escapeHtml(p.nombre)}</span>
             </div>
           </td>
-          <td>
+          <td data-label="Especie / Raza">
             <span class="species-tag">${escapeHtml(p.especie)}</span>
             <span class="entity-sub">${escapeHtml(p.raza || "Sin raza especificada")}</span>
           </td>
-          <td><span class="date-cell">${nacimiento}</span></td>
-          <td>
+          <td data-label="Nacimiento"><span class="date-cell">${nacimiento}</span></td>
+          <td data-label="Propietario">
             <span class="entity-primary">${escapeHtml(p.propietario_nombre)}</span>
             <span class="entity-sub">${escapeHtml(p.propietario_telefono || "Sin teléfono")}</span>
           </td>
-          <td>
+          <td data-label="Citas">
             <button
               type="button"
               class="btn btn-ghost btn-xs"
@@ -335,7 +335,7 @@ function renderPacientes() {
               Ver (${numCitas})
             </button>
           </td>
-          <td class="text-right">
+          <td data-label="Acciones" class="text-right">
             <div class="actions-group">
               <button
                 type="button"
@@ -411,20 +411,20 @@ function renderCitas() {
 
       return `
         <tr>
-          <td><span class="id-badge">#${escapeHtml(c.id)}</span></td>
-          <td>
+          <td data-label="ID"><span class="id-badge">#${escapeHtml(c.id)}</span></td>
+          <td data-label="Paciente">
             <span class="entity-primary">${escapeHtml(pacienteNombre)} <span class="id-badge">#${escapeHtml(
         c.paciente_id
       )}</span></span>
             <span class="entity-sub">${escapeHtml(pacienteDetalle)}</span>
           </td>
-          <td><span class="date-cell">${formatDateTime(c.fecha_hora)}</span></td>
-          <td>${escapeHtml(c.motivo)}</td>
-          <td><span class="entity-primary">${escapeHtml(c.veterinario || "Por asignar")}</span></td>
-          <td>
+          <td data-label="Fecha y hora"><span class="date-cell">${formatDateTime(c.fecha_hora)}</span></td>
+          <td data-label="Motivo">${escapeHtml(c.motivo)}</td>
+          <td data-label="Veterinario"><span class="entity-primary">${escapeHtml(c.veterinario || "Por asignar")}</span></td>
+          <td data-label="Estado">
             <span class="status-pill status-${estadoNorm}">${escapeHtml(estadoNorm)}</span>
           </td>
-          <td class="text-right">
+          <td data-label="Acciones" class="text-right">
             <div class="actions-group">
               <button
                 type="button"
