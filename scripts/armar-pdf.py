@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Arma el PDF final a partir de docs/evidencias/<LETRA>/CRITERIO-descripcion.png.
 
-El PDF lleva la portada, un informe corto y un anexo con las capturas agrupadas por
-persona (P1 a P6), según quién entrega cada criterio de la rúbrica.
+El PDF lleva la portada, un informe corto con el diagrama y un anexo con las capturas en el
+orden de la rúbrica (secciones A a G), con quién entrega cada una (P1 a P6) entre paréntesis.
 
 Uso:
     python scripts/armar-pdf.py
     python scripts/armar-pdf.py --estricto      # falla si falta alguna captura
+    python scripts/armar-pdf.py --por-persona   # anexo agrupado por persona en vez de A a G
 
 Necesita: pip install reportlab pillow
 """
@@ -36,6 +37,16 @@ from reportlab.platypus import (
 
 RAIZ = Path(__file__).resolve().parent.parent
 
+DIAGRAMA = RAIZ / "docs" / "arquitectura" / "diagrama.png"
+SECCIONES = {
+    "A": "Repositorio y documentación",
+    "B": "Microservicios",
+    "C": "Imágenes y registro",
+    "D": "Infraestructura con Terraform",
+    "E": "Despliegue en Kubernetes",
+    "F": "Operación",
+    "G": "Costos y cierre",
+}
 REPO = "https://github.com/Keinaro/proyecto-final-maximos"
 REGISTRO = "us-central1-docker.pkg.dev/veterinaria-maximos-final/vet-repo"
 IP_PUBLICA = "35.224.209.199"
@@ -306,8 +317,12 @@ def informe(est):
     enlace = lambda url: f'<link href="{url}" color="#1a56b0">{url}</link>'
 
     responsables = [["Área", "Responsable", "Carné"]]
-    for i, (clave, nombre, carne, area) in enumerate(PERSONAS, start=1):
-        responsables.append([f"{i}. {area}", nombre, carne])
+    for clave, nombre, carne, area in PERSONAS:
+        responsables.append([f"{clave}. {area}", nombre, carne])
+
+    diagrama = []
+    if DIAGRAMA.exists():
+        diagrama = [imagen_para_pdf(DIAGRAMA, 16.5, 11), Spacer(1, 6)]
 
     rutas = [
         ["Ruta pública", "Destino", "Puerto"],
@@ -342,6 +357,7 @@ def informe(est):
           f"LoadBalancer, {IP_PUBLICA}). El nginx del frontend reenvía las rutas que empiezan con /api a los "
           "microservicios usando el nombre DNS de cada Service. Pacientes, Citas y la base de datos son "
           "ClusterIP, así que no se pueden alcanzar desde afuera del clúster."),
+        *diagrama,
         tabla(rutas, [7.6 * cm, 6.2 * cm, 2.8 * cm]),
         Spacer(1, 6),
         p("Los dos microservicios llegan a PostgreSQL por el Service db, en el puerto 5432."),
@@ -388,23 +404,47 @@ def informe(est):
     ]
 
 
-def anexo(est, por_persona):
-    historia = [Paragraph("Anexo — Evidencias", est["h1"]),
-                Paragraph("Las capturas están agrupadas por persona. Las de la terminal del clúster muestran el reloj "
-                          "del sistema y la salida de gcloud config list con el proyecto del equipo. Las de "
-                          "Terraform y costos (D1, D2, G1, G3 y una de D5) las tomó Ana Lucía en su "
-                          "computadora.", est["texto"])]
+NOTA_TERRAFORM = ("Las de la terminal del clúster muestran el reloj del sistema y la salida de gcloud config "
+                  "list con el proyecto del equipo. Las de Terraform y costos (D1, D2, G1, G3 y una de D5) "
+                  "las tomó Ana Lucía en su computadora.")
+
+
+def anexo(est, lista, por_persona, por_persona_modo=False):
+    if por_persona_modo:
+        intro = "Las capturas están agrupadas por persona. " + NOTA_TERRAFORM
+    else:
+        intro = ("Las capturas siguen el orden de la rúbrica, de la A a la G. Entre paréntesis va quién entrega "
+                 "cada una (P1 a P6, según la tabla del informe). " + NOTA_TERRAFORM)
+    historia = [Paragraph("Anexo — Evidencias", est["h1"]), Paragraph(intro, est["texto"])]
+
+    if por_persona_modo:
+        primera = True
+        for clave, nombre, _carne, area in PERSONAS:
+            fotos = por_persona[clave]
+            if not fotos:
+                continue
+            if not primera:
+                historia.append(PageBreak())
+            primera = False
+            historia.append(Paragraph(f"{clave} · {nombre} · {area}", est["h2"]))
+            for codigo, foto in fotos:
+                titulo = Paragraph(f"{codigo}. {titulo_de(codigo, foto)}", est["captura"])
+                historia.append(KeepTogether([titulo, imagen_para_pdf(foto, 16.5, 11)]))
+        return historia
+
     primera = True
-    for clave, nombre, _carne, area in PERSONAS:
-        fotos = por_persona[clave]
+    for letra, nombre in SECCIONES.items():
+        fotos = [(c, f) for c, f in lista if c.startswith(letra)]
         if not fotos:
             continue
+        puntos = sum(p for c, p, _ in CRITERIOS if c.startswith(letra))
         if not primera:
             historia.append(PageBreak())
         primera = False
-        historia.append(Paragraph(f"{clave} · {nombre} · {area}", est["h2"]))
+        historia.append(Paragraph(f"{letra}. {nombre} ({puntos} pts)", est["h2"]))
         for codigo, foto in fotos:
-            titulo = Paragraph(f"{codigo}. {titulo_de(codigo, foto)}", est["captura"])
+            persona = persona_de(codigo, foto)
+            titulo = Paragraph(f"{codigo}. {titulo_de(codigo, foto)} ({persona})", est["captura"])
             historia.append(KeepTogether([titulo, imagen_para_pdf(foto, 16.5, 11)]))
     return historia
 
@@ -414,15 +454,17 @@ def construir(args):
     capturas = buscar_capturas(Path(args.evidencias))
 
     faltan = []
+    lista = []
     por_persona = {clave: [] for clave, *_ in PERSONAS}
     for codigo, _puntos, _descripcion in CRITERIOS:
         fotos = capturas.get(codigo, [])
         if not fotos:
             faltan.append(codigo)
         for foto in fotos:
+            lista.append((codigo, foto))
             por_persona[persona_de(codigo, foto)].append((codigo, foto))
 
-    historia = portada(est) + informe(est) + anexo(est, por_persona)
+    historia = portada(est) + informe(est) + anexo(est, lista, por_persona, args.por_persona)
 
     salida = Path(args.salida)
     salida.parent.mkdir(parents=True, exist_ok=True)
@@ -449,4 +491,6 @@ if __name__ == "__main__":
     ap.add_argument("--evidencias", default=str(RAIZ / "docs" / "evidencias"))
     ap.add_argument("--salida", default=str(RAIZ / "docs" / "Evidencias-Proyecto-Final-Maximos.pdf"))
     ap.add_argument("--estricto", action="store_true")
+    ap.add_argument("--por-persona", action="store_true",
+                    help="agrupa el anexo por persona en vez de seguir el orden A a G de la rúbrica")
     construir(ap.parse_args())
