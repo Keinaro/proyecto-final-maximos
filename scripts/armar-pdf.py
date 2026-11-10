@@ -160,6 +160,12 @@ TITULOS_POR_ARCHIVO = {
     "B3-dockerfile-frontend": "Dockerfile del frontend",
     "B3-docker-images": "docker images",
     "B4-frontend-ambos-servicios": "Frontend con pacientes y citas",
+    "D1-lista-de-archivos-terraform": "Archivos de Terraform en el repositorio",
+    "D1-main-tf-node-pool-spot": "main.tf, grupo de nodos Spot",
+    "D2-variables-tf-parte-1": "variables.tf, primera parte",
+    "D2-variables-tf-parte-2": "variables.tf, segunda parte",
+    "D5-nodos-spot": "Nodos spot, etiqueta gke-spot",
+    "D5-nodos-spot-kubectl-ana-lucia": "Nodos spot, kubectl get nodes",
 }
 
 EXTENSIONES = {".png", ".jpg", ".jpeg"}
@@ -384,8 +390,10 @@ def informe(est):
 
 def anexo(est, por_persona):
     historia = [Paragraph("Anexo — Evidencias", est["h1"]),
-                Paragraph("Las capturas están agrupadas por persona. Las tomadas en la terminal muestran el reloj "
-                          "del sistema y la salida de gcloud config list con el proyecto del equipo.", est["texto"])]
+                Paragraph("Las capturas están agrupadas por persona. Las de la terminal del clúster muestran el reloj "
+                          "del sistema y la salida de gcloud config list con el proyecto del equipo. Las de "
+                          "Terraform y costos (D1, D2, G1, G3 y una de D5) las tomó Ana Lucía en su "
+                          "computadora.", est["texto"])]
     primera = True
     for clave, nombre, _carne, area in PERSONAS:
         fotos = por_persona[clave]
