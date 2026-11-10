@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: citas
-          image: REGION-docker.pkg.dev/PROJECT_ID/vet-repo/citas:v1.0.0
+          image: us-central1-docker.pkg.dev/veterinaria-maximos-final/vet-repo/citas:v1.0.0
           ports:
             - name: http
               containerPort: 8080

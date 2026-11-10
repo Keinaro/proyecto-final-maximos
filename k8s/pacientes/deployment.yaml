@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: pacientes
-          image: REGION-docker.pkg.dev/PROJECT_ID/vet-repo/pacientes:v1.0.0
+          image: us-central1-docker.pkg.dev/veterinaria-maximos-final/vet-repo/pacientes:v1.0.0
           ports:
             - name: http
               containerPort: 8080
