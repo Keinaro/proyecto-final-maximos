@@ -1,0 +1,22 @@
+
+# Service de PostgreSQL
+# Rol 04 - Comunicacion interna de la base de datos
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: maximos
+  labels:
+    app: db
+
+spec:
+  type: ClusterIP
+  selector:
+    app: db
+
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

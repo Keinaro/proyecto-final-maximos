@@ -1,0 +1,15 @@
+
+# PersistentVolumeClaim para PostgreSQL
+# Rol 04 - Persistencia de datos (E4)
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+  namespace: maximos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
