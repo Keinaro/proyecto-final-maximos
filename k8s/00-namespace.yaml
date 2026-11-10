@@ -1,0 +1,7 @@
+# Namespace del equipo (A5). Se aplica antes que cualquier otro manifiesto.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: maximos
+  labels:
+    app.kubernetes.io/part-of: vet-maximos

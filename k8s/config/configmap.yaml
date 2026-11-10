@@ -1,0 +1,13 @@
+
+# ConfigMap para la aplicacion veterinaria
+# Rol 04 - Configuracion no sensible
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: maximos
+data:
+  PORT: "8080"
+  DB_HOST: "db"
+  DB_PORT: "5432"
+  DB_NAME: "vetdb"

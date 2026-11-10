@@ -1,0 +1,16 @@
+# Interno al clúster. El nombre "citas" es el DNS que usa el nginx del frontend (E6).
+apiVersion: v1
+kind: Service
+metadata:
+  name: citas
+  namespace: maximos
+  labels:
+    app: citas
+spec:
+  type: ClusterIP
+  selector:
+    app: citas
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
