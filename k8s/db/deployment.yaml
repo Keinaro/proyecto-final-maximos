@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: db
-          image: REGION-docker.pkg.dev/PROJECT_ID/vet-repo/db:16
+          image: us-central1-docker.pkg.dev/veterinaria-maximos-final/vet-repo/db:16
           imagePullPolicy: IfNotPresent
 
           ports:
