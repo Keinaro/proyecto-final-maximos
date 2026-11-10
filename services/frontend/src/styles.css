@@ -972,3 +972,199 @@ code {
 .hidden {
   display: none !important;
 }
+
+
+/* ==========================================================================
+   Responsive: tablets y teléfonos
+   ========================================================================== */
+@media (max-width: 900px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .view-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .tab-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .kpi-card {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 0 0.85rem;
+  }
+
+  /* Topbar: marca arriba, botón a todo el ancho */
+  .topbar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+  }
+
+  .brand h1 {
+    font-size: 1.1rem;
+  }
+
+  .subtitle {
+    font-size: 0.74rem;
+  }
+
+  .status-cluster .btn {
+    width: 100%;
+  }
+
+  /* KPIs en columna */
+  .kpi-strip {
+    grid-template-columns: 1fr;
+  }
+
+  /* Encabezado de panel: título arriba, botón a todo el ancho */
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-header .btn {
+    width: 100%;
+  }
+
+  .panel-header,
+  .panel-filters {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .filters-row,
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .filters-row .btn {
+    width: 100%;
+  }
+
+  /* Tablas -> tarjetas: cada fila es una tarjeta y cada celda una línea con su etiqueta */
+  .table-wrapper {
+    overflow-x: visible;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 0.9rem;
+  }
+
+  .data-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    border-bottom: none;
+    text-align: right;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    text-align: left;
+  }
+
+  /* Celdas de estado vacío / error no llevan etiqueta */
+  .data-table td.empty-cell {
+    display: block;
+    text-align: center;
+  }
+
+  .data-table td.empty-cell::before {
+    content: none;
+  }
+
+  .data-table td > div,
+  .data-table td > span {
+    text-align: right;
+  }
+
+  /* Botones de acción grandes y fáciles de tocar */
+  .data-table td[data-label="Acciones"] {
+    padding-top: 0.6rem;
+  }
+
+  .data-table td[data-label="Acciones"]::before {
+    content: none;
+  }
+
+  .actions-group {
+    width: 100%;
+  }
+
+  .actions-group .btn {
+    flex: 1;
+    padding: 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  /* Modales a pantalla casi completa */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+  }
+
+  /* Evita el zoom automático de iOS al enfocar campos (requiere >= 16px) */
+  .input,
+  .input-sm {
+    font-size: 16px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
